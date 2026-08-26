@@ -13,8 +13,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const TELEGRAM_TOKEN = '8914921746:AAEhFFTB4wrX-vPSPbFtpH747o6QbSPUfww';
-const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
+const SMS_API_ID = '80092059-6EB2-9425-83AF-59D4B555B8AE';
 
 let usersDB = new Map();
 let tags = new Set();
@@ -55,19 +54,19 @@ function generateCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-async function sendTelegramMessage(chatId, text) {
+// Отправка SMS через SMS.ru
+async function sendSMS(phone, message) {
     try {
-        const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: text
-            })
-        });
-        return await response.json();
+        const cleanPhone = phone.replace(/\D/g, '');
+        const smsUrl = `https://sms.ru/sms/send?api_id=${SMS_API_ID}&to=${cleanPhone}&msg=${encodeURIComponent(message)}&json=1`;
+        
+        const response = await fetch(smsUrl);
+        const data = await response.json();
+        
+        console.log('SMS.ru ответ:', JSON.stringify(data));
+        return data;
     } catch (error) {
-        console.error('Ошибка Telegram:', error);
+        console.error('Ошибка отправки SMS:', error);
         return null;
     }
 }
@@ -85,8 +84,7 @@ app.post('/api/send-code', async (req, res) => {
         usersDB.set(phone, { 
             code, 
             verified: false,
-            createdAt: Date.now(),
-            chatId: null
+            createdAt: Date.now()
         });
     } else {
         usersDB.get(phone).code = code;
@@ -96,17 +94,14 @@ app.post('/api/send-code', async (req, res) => {
     
     console.log(`📱 Код для ${phone}: ${code}`);
     
-    const user = usersDB.get(phone);
+    // Отправка SMS
+    const smsResult = await sendSMS(phone, `Ваш код подтверждения: ${code}`);
     
-    if (user.chatId) {
-        await sendTelegramMessage(user.chatId, `Ваш код подтверждения: ${code}`);
-        res.json({ success: true, needTelegram: false });
+    if (smsResult && smsResult.status === 'OK') {
+        res.json({ success: true, message: 'Код отправлен по SMS' });
     } else {
-        res.json({ 
-            success: true, 
-            needTelegram: true,
-            botUrl: `https://t.me/privet_messenger_bot?start=${phone}`
-        });
+        // Если SMS не отправилось, код всё равно в консоли
+        res.json({ success: true, message: 'Код сгенерирован' });
     }
 });
 
@@ -234,53 +229,6 @@ app.post('/api/check-auth', (req, res) => {
     }
     
     res.json({ success: false });
-});
-
-// Webhook для Telegram
-app.post('/api/telegram-webhook', async (req, res) => {
-    const { message } = req.body;
-    
-    if (message && message.text) {
-        const chatId = message.chat.id;
-        const text = message.text.trim();
-        
-        console.log(`Telegram от ${chatId}: ${text}`);
-        
-        if (text.startsWith('/start')) {
-            const params = text.split(' ');
-            if (params.length > 1) {
-                const phone = params[1];
-                
-                if (usersDB.has(phone)) {
-                    usersDB.get(phone).chatId = chatId;
-                    saveData();
-                    
-                    const code = usersDB.get(phone).code;
-                    await sendTelegramMessage(chatId, `Ваш код подтверждения: ${code}`);
-                } else {
-                    await sendTelegramMessage(chatId, 'Номер не найден. Сначала зарегистрируйтесь на сайте.');
-                }
-            } else {
-                await sendTelegramMessage(chatId, 'Привет! Отправьте ваш номер телефона (например: 9991234567)');
-            }
-        } else if (/^\d{10,15}$/.test(text)) {
-            const phone = text;
-            
-            if (usersDB.has(phone)) {
-                usersDB.get(phone).chatId = chatId;
-                saveData();
-                
-                const code = usersDB.get(phone).code;
-                await sendTelegramMessage(chatId, `Ваш код подтверждения: ${code}`);
-            } else {
-                await sendTelegramMessage(chatId, 'Номер не найден. Сначала зарегистрируйтесь на сайте.');
-            }
-        } else {
-            await sendTelegramMessage(chatId, 'Пожалуйста, отправьте номер телефона цифрами (например: 9991234567)');
-        }
-    }
-    
-    res.json({ ok: true });
 });
 
 wss.on('connection', (ws) => {
