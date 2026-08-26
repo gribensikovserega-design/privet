@@ -814,11 +814,10 @@
                     currentPhone = fullPhone;
                     showCodeScreen();
                     
-                    if (!data.smsSent) {
-                        const testDisplay = document.getElementById('testCodeDisplay');
-                        testDisplay.textContent = 'Ваш код: ' + data.code;
-                        testDisplay.style.display = 'block';
-                    }
+                    // Всегда показываем код
+                    const testDisplay = document.getElementById('testCodeDisplay');
+                    testDisplay.textContent = 'Ваш код: ' + data.code;
+                    testDisplay.style.display = 'block';
                 } else {
                     showError('phoneError', data.error || 'Ошибка');
                 }

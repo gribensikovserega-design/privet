@@ -95,16 +95,13 @@ app.post('/api/send-code', async (req, res) => {
     
     try {
         const smsResult = await sendSMS(phone, `Ваш код подтверждения: ${code}`);
-        
-        if (smsResult && smsResult.status === 'OK') {
-            res.json({ success: true, smsSent: true, code: code });
-        } else {
-            res.json({ success: true, smsSent: false, code: code });
-        }
+        console.log('SMS результат:', smsResult);
     } catch (error) {
         console.error('Ошибка SMS:', error);
-        res.json({ success: true, smsSent: false, code: code });
     }
+    
+    // Всегда возвращаем код
+    res.json({ success: true, code: code });
 });
 
 app.post('/api/verify-code', (req, res) => {
