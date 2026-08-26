@@ -221,6 +221,18 @@
             display: none;
         }
         
+        .test-code-display {
+            background: #f0f8ff;
+            border: 2px solid #0088cc;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #0088cc;
+            display: none;
+        }
+        
         .profile-screen {
             gap: 15px;
         }
@@ -648,7 +660,9 @@
     <!-- Экран ввода кода -->
     <div class="screen code-screen hidden" id="codeScreen">
         <h2>Введите код</h2>
-        <p class="code-hint">Мы отправили SMS с кодом на номер <span id="displayPhone"></span></p>
+        <p class="code-hint">Код отправлен на номер <span id="displayPhone"></span></p>
+        
+        <div class="test-code-display" id="testCodeDisplay"></div>
         
         <div class="code-inputs">
             <input type="text" class="code-digit" maxlength="1" oninput="moveToNext(this, 0)">
@@ -799,6 +813,12 @@
                 if (data.success) {
                     currentPhone = fullPhone;
                     showCodeScreen();
+                    
+                    if (!data.smsSent) {
+                        const testDisplay = document.getElementById('testCodeDisplay');
+                        testDisplay.textContent = 'Ваш код: ' + data.code;
+                        testDisplay.style.display = 'block';
+                    }
                 } else {
                     showError('phoneError', data.error || 'Ошибка');
                 }

@@ -54,7 +54,6 @@ function generateCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Отправка SMS через SMS.ru
 async function sendSMS(phone, message) {
     try {
         const cleanPhone = phone.replace(/\D/g, '');
@@ -94,14 +93,17 @@ app.post('/api/send-code', async (req, res) => {
     
     console.log(`📱 Код для ${phone}: ${code}`);
     
-    // Отправка SMS
-    const smsResult = await sendSMS(phone, `Ваш код подтверждения: ${code}`);
-    
-    if (smsResult && smsResult.status === 'OK') {
-        res.json({ success: true, message: 'Код отправлен по SMS' });
-    } else {
-        // Если SMS не отправилось, код всё равно в консоли
-        res.json({ success: true, message: 'Код сгенерирован' });
+    try {
+        const smsResult = await sendSMS(phone, `Ваш код подтверждения: ${code}`);
+        
+        if (smsResult && smsResult.status === 'OK') {
+            res.json({ success: true, smsSent: true, code: code });
+        } else {
+            res.json({ success: true, smsSent: false, code: code });
+        }
+    } catch (error) {
+        console.error('Ошибка SMS:', error);
+        res.json({ success: true, smsSent: false, code: code });
     }
 });
 
