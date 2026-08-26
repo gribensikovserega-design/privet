@@ -70,6 +70,7 @@ async function sendSMS(phone, message) {
     }
 }
 
+// Отправка кода
 app.post('/api/send-code', async (req, res) => {
     const { phone } = req.body;
     
@@ -100,10 +101,10 @@ app.post('/api/send-code', async (req, res) => {
         console.error('Ошибка SMS:', error);
     }
     
-    // Всегда возвращаем код
     res.json({ success: true, code: code });
 });
 
+// Проверка кода
 app.post('/api/verify-code', (req, res) => {
     const { phone, code } = req.body;
     
@@ -120,7 +121,7 @@ app.post('/api/verify-code', (req, res) => {
     user.verified = true;
     saveData();
     
-    if (user.firstName && user.tag) {
+    if (user.firstName && user.tag && user.password) {
         return res.json({
             success: true,
             user: {
@@ -139,8 +140,9 @@ app.post('/api/verify-code', (req, res) => {
     res.json({ success: true, needProfile: true });
 });
 
+// Сохранение профиля с паролем
 app.post('/api/save-profile', (req, res) => {
-    const { phone, firstName, lastName, tag, birthDate, email, avatar } = req.body;
+    const { phone, firstName, lastName, tag, birthDate, email, avatar, password } = req.body;
     
     if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
         return res.status(400).json({ error: 'Пользователь не авторизован' });
@@ -150,6 +152,10 @@ app.post('/api/save-profile', (req, res) => {
     
     if (tags.has(cleanTag) && usersDB.get(phone).tag !== cleanTag) {
         return res.status(400).json({ error: 'Этот тег уже занят' });
+    }
+    
+    if (!password || password.length < 6) {
+        return res.status(400).json({ error: 'Пароль должен быть не менее 6 символов' });
     }
     
     const user = usersDB.get(phone);
@@ -165,6 +171,7 @@ app.post('/api/save-profile', (req, res) => {
     user.birthDate = birthDate;
     user.email = email;
     user.avatar = avatar;
+    user.password = password;
     
     saveData();
     
@@ -180,6 +187,80 @@ app.post('/api/save-profile', (req, res) => {
             avatar
         }
     });
+});
+
+// Вход по логину и паролю
+app.post('/api/login', (req, res) => {
+    const { login, password } = req.body;
+    
+    if (!login || !password) {
+        return res.status(400).json({ error: 'Введите логин и пароль' });
+    }
+    
+    const cleanLogin = login.trim().toLowerCase();
+    let foundUser = null;
+    let foundPhone = null;
+    
+    usersDB.forEach((user, phone) => {
+        if (!user.password) return;
+        
+        const userTag = user.tag ? user.tag.toLowerCase() : '';
+        const userEmail = user.email ? user.email.toLowerCase() : '';
+        const userPhone = phone;
+        
+        if (cleanLogin === userTag || 
+            cleanLogin === userEmail || 
+            cleanLogin === userPhone ||
+            cleanLogin === userPhone.replace(/\D/g, '')) {
+            foundUser = user;
+            foundPhone = phone;
+        }
+    });
+    
+    if (!foundUser) {
+        return res.status(400).json({ error: 'Пользователь не найден' });
+    }
+    
+    if (foundUser.password !== password) {
+        return res.status(400).json({ error: 'Неверный пароль' });
+    }
+    
+    res.json({
+        success: true,
+        user: {
+            phone: foundPhone,
+            firstName: foundUser.firstName,
+            lastName: foundUser.lastName,
+            tag: foundUser.tag,
+            birthDate: foundUser.birthDate,
+            email: foundUser.email,
+            avatar: foundUser.avatar
+        }
+    });
+});
+
+// Сброс пароля по SMS
+app.post('/api/reset-password', (req, res) => {
+    const { phone, code, newPassword } = req.body;
+    
+    if (!usersDB.has(phone)) {
+        return res.status(400).json({ error: 'Пользователь не найден' });
+    }
+    
+    const user = usersDB.get(phone);
+    
+    if (user.code !== code) {
+        return res.status(400).json({ error: 'Неверный код' });
+    }
+    
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: 'Пароль должен быть не менее 6 символов' });
+    }
+    
+    user.password = newPassword;
+    saveData();
+    
+    res.json({ success: true });
 });
 
 app.get('/api/get-users', (req, res) => {
