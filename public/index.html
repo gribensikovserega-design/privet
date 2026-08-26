@@ -611,6 +611,32 @@
             color: #999;
             font-size: 20px;
         }
+        
+        .telegram-btn {
+            padding: 15px 50px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-block;
+            text-decoration: none;
+        }
+        
+        .telegram-btn:hover {
+            background: #006699;
+        }
+        
+        .btn-green {
+            background: #4cd964;
+        }
+        
+        .btn-green:hover {
+            background: #3cb854;
+        }
     </style>
 </head>
 <body>
@@ -738,7 +764,6 @@
         let chats = [];
         let chatMessages = {};
         
-        // Проверка авторизации при загрузке
         function checkAuth() {
             const savedPhone = localStorage.getItem('currentPhone');
             
@@ -756,7 +781,7 @@
                         enterMessenger();
                     }
                 })
-                .catch(err => console.error('Ошибка проверки авторизации:', err));
+                .catch(err => console.error('Ошибка:', err));
             }
         }
         
@@ -799,12 +824,47 @@
             .then(data => {
                 if (data.success) {
                     currentPhone = fullPhone;
-                    showCodeScreen();
+                    
+                    if (data.needTelegram) {
+                        showTelegramPrompt(data.botUrl);
+                    } else {
+                        showCodeScreen();
+                    }
                 } else {
                     showError('phoneError', data.error || 'Ошибка');
                 }
             })
             .catch(err => showError('phoneError', 'Ошибка соединения'));
+        }
+        
+        function showTelegramPrompt(telegramLink) {
+            const phoneScreen = document.getElementById('phoneScreen');
+            phoneScreen.innerHTML = `
+                <h2>🤖 Подтверждение через Telegram</h2>
+                <p class="phone-hint">Нажмите кнопку ниже, чтобы получить код в Telegram</p>
+                
+                <a href="${telegramLink}" target="_blank" class="telegram-btn">
+                    🤖 Открыть Telegram
+                </a>
+                
+                <p style="color: #666; margin-top: 20px; text-align: center;">
+                    После отправки номера боту,<br>вернитесь сюда и введите код
+                </p>
+                
+                <button class="btn-primary btn-green" onclick="showCodeScreen()">
+                    ✅ Я получил код
+                </button>
+                
+                <button class="btn-primary" onclick="backToPhone()" style="background: #999;">
+                    ← Назад
+                </button>
+                
+                <div class="error-message" id="phoneError"></div>
+            `;
+        }
+        
+        function backToPhone() {
+            location.reload();
         }
         
         function verifyCode() {

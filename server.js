@@ -13,11 +13,13 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+const TELEGRAM_TOKEN = '8914921746:AAEhFFTB4wrX-vPSPbFtpH747o6QbSPUfww';
+const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
+
 let usersDB = new Map();
 let tags = new Set();
 let onlineUsers = new Map();
 
-// Загрузка данных из файла
 function loadData() {
     try {
         if (fs.existsSync('data.json')) {
@@ -37,7 +39,6 @@ function loadData() {
     }
 }
 
-// Сохранение данных в файл
 function saveData() {
     try {
         const usersObj = Object.fromEntries(usersDB);
@@ -54,7 +55,24 @@ function generateCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-app.post('/api/send-code', (req, res) => {
+async function sendTelegramMessage(chatId, text) {
+    try {
+        const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: text
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Ошибка Telegram:', error);
+        return null;
+    }
+}
+
+app.post('/api/send-code', async (req, res) => {
     const { phone } = req.body;
     
     if (!phone || phone.length < 10) {
@@ -67,7 +85,8 @@ app.post('/api/send-code', (req, res) => {
         usersDB.set(phone, { 
             code, 
             verified: false,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            chatId: null
         });
     } else {
         usersDB.get(phone).code = code;
@@ -76,7 +95,19 @@ app.post('/api/send-code', (req, res) => {
     saveData();
     
     console.log(`📱 Код для ${phone}: ${code}`);
-    res.json({ success: true });
+    
+    const user = usersDB.get(phone);
+    
+    if (user.chatId) {
+        await sendTelegramMessage(user.chatId, `Ваш код подтверждения: ${code}`);
+        res.json({ success: true, needTelegram: false });
+    } else {
+        res.json({ 
+            success: true, 
+            needTelegram: true,
+            botUrl: `https://t.me/privet_messenger_bot?start=${phone}`
+        });
+    }
 });
 
 app.post('/api/verify-code', (req, res) => {
@@ -203,6 +234,53 @@ app.post('/api/check-auth', (req, res) => {
     }
     
     res.json({ success: false });
+});
+
+// Webhook для Telegram
+app.post('/api/telegram-webhook', async (req, res) => {
+    const { message } = req.body;
+    
+    if (message && message.text) {
+        const chatId = message.chat.id;
+        const text = message.text.trim();
+        
+        console.log(`Telegram от ${chatId}: ${text}`);
+        
+        if (text.startsWith('/start')) {
+            const params = text.split(' ');
+            if (params.length > 1) {
+                const phone = params[1];
+                
+                if (usersDB.has(phone)) {
+                    usersDB.get(phone).chatId = chatId;
+                    saveData();
+                    
+                    const code = usersDB.get(phone).code;
+                    await sendTelegramMessage(chatId, `Ваш код подтверждения: ${code}`);
+                } else {
+                    await sendTelegramMessage(chatId, 'Номер не найден. Сначала зарегистрируйтесь на сайте.');
+                }
+            } else {
+                await sendTelegramMessage(chatId, 'Привет! Отправьте ваш номер телефона (например: 9991234567)');
+            }
+        } else if (/^\d{10,15}$/.test(text)) {
+            const phone = text;
+            
+            if (usersDB.has(phone)) {
+                usersDB.get(phone).chatId = chatId;
+                saveData();
+                
+                const code = usersDB.get(phone).code;
+                await sendTelegramMessage(chatId, `Ваш код подтверждения: ${code}`);
+            } else {
+                await sendTelegramMessage(chatId, 'Номер не найден. Сначала зарегистрируйтесь на сайте.');
+            }
+        } else {
+            await sendTelegramMessage(chatId, 'Пожалуйста, отправьте номер телефона цифрами (например: 9991234567)');
+        }
+    }
+    
+    res.json({ ok: true });
 });
 
 wss.on('connection', (ws) => {
