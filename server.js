@@ -3,7 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
 const path = require('path');
-const storage = require('node-persist');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -13,38 +13,39 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Инициализация хранилища
-storage.init({
-    dir: 'data',
-    stringify: JSON.stringify,
-    parse: JSON.parse,
-    encoding: 'utf8',
-    logging: false
-});
-
 let usersDB = new Map();
 let tags = new Set();
 let onlineUsers = new Map();
 
-// Загрузка данных при старте
-async function loadData() {
-    const users = await storage.getItem('users');
-    if (users) {
-        usersDB = new Map(Object.entries(users));
-        usersDB.forEach((user) => {
-            if (user.tag) {
-                tags.add(user.tag);
+// Загрузка данных из файла
+function loadData() {
+    try {
+        if (fs.existsSync('data.json')) {
+            const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
+            if (data.users) {
+                usersDB = new Map(Object.entries(data.users));
+                usersDB.forEach((user) => {
+                    if (user.tag) {
+                        tags.add(user.tag);
+                    }
+                });
             }
-        });
+        }
+        console.log('Данные загружены');
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
     }
-    console.log('Данные загружены');
 }
 
-// Сохранение данных
-async function saveData() {
-    const usersObj = Object.fromEntries(usersDB);
-    await storage.setItem('users', usersObj);
-    console.log('Данные сохранены');
+// Сохранение данных в файл
+function saveData() {
+    try {
+        const usersObj = Object.fromEntries(usersDB);
+        fs.writeFileSync('data.json', JSON.stringify({ users: usersObj }, null, 2));
+        console.log('Данные сохранены');
+    } catch (error) {
+        console.error('Ошибка сохранения данных:', error);
+    }
 }
 
 loadData();
@@ -94,7 +95,6 @@ app.post('/api/verify-code', (req, res) => {
     user.verified = true;
     saveData();
     
-    // Если профиль уже заполнен - возвращаем данные
     if (user.firstName && user.tag) {
         return res.json({
             success: true,
@@ -123,12 +123,10 @@ app.post('/api/save-profile', (req, res) => {
     
     const cleanTag = tag.replace('@', '').toLowerCase();
     
-    // Проверяем уникальность тега
     if (tags.has(cleanTag) && usersDB.get(phone).tag !== cleanTag) {
         return res.status(400).json({ error: 'Этот тег уже занят' });
     }
     
-    // Удаляем старый тег
     const user = usersDB.get(phone);
     if (user.tag) {
         tags.delete(user.tag);
@@ -159,7 +157,6 @@ app.post('/api/save-profile', (req, res) => {
     });
 });
 
-// API для получения всех пользователей
 app.get('/api/get-users', (req, res) => {
     const users = [];
     usersDB.forEach((value, key) => {
@@ -177,7 +174,6 @@ app.get('/api/get-users', (req, res) => {
     res.json({ users });
 });
 
-// API для проверки авторизации
 app.post('/api/check-auth', (req, res) => {
     const { phone } = req.body;
     
@@ -296,5 +292,5 @@ function broadcastUserList() {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Сервер запущен на http://localhost:${PORT}`);
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
