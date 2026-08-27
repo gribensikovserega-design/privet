@@ -438,6 +438,8 @@
                         currentUser = data.user;
                         currentPhone = savedPhone;
                         enterMessenger();
+                    } else {
+                        localStorage.removeItem('currentPhone');
                     }
                 })
                 .catch(err => console.error(err));
@@ -671,26 +673,43 @@
                 .then(res => res.json())
                 .then(data => {
                     allUsers = data.users.filter(u => u.phone !== currentUser.phone);
-                });
+                    console.log('Пользователей загружено:', allUsers.length);
+                })
+                .catch(err => console.error('Ошибка загрузки:', err));
         }
         
         function searchUsers(query) {
             const div = document.getElementById('searchResults');
-            if (!query) { div.style.display = 'none'; return; }
+            if (!query || query.length < 1) { div.style.display = 'none'; return; }
+            
+            const q = query.toLowerCase();
             const results = allUsers.filter(u => 
-                (u.firstName + ' ' + u.lastName).toLowerCase().includes(query.toLowerCase()) ||
-                (u.tag || '').toLowerCase().includes(query.toLowerCase()) ||
-                u.phone.includes(query)
+                (u.firstName + ' ' + (u.lastName || '')).toLowerCase().includes(q) ||
+                (u.tag || '').toLowerCase().includes(q) ||
+                u.phone.includes(query) ||
+                u.phone.replace(/\D/g, '').includes(query.replace(/\D/g, ''))
             );
+            
             if (results.length === 0) {
-                div.innerHTML = '<div style="padding:15px;color:#666;">Не найдено</div>';
+                div.innerHTML = '<div style="padding:15px;color:#666;">Ничего не найдено</div>';
             } else {
                 div.innerHTML = '';
                 results.forEach(user => {
                     const item = document.createElement('div');
                     item.className = 'search-result-item';
                     item.onclick = () => startChat(user);
-                    item.innerHTML = `${user.avatar ? `<img src="${user.avatar}">` : `<div style="width:40px;height:40px;border-radius:50%;background:#0088cc;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">${user.firstName[0]}</div>`}<div><div style="font-weight:bold;">${user.firstName} ${user.lastName}</div><div style="color:#666;font-size:14px;">@${user.tag}</div></div>`;
+                    
+                    const displayName = user.firstName + ' ' + (user.lastName || '');
+                    const displayTag = user.tag ? '@' + user.tag : 'Нет тега';
+                    
+                    item.innerHTML = `
+                        ${user.avatar ? `<img src="${user.avatar}">` : `<div style="width:40px;height:40px;border-radius:50%;background:#0088cc;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">${user.firstName[0]}</div>`}
+                        <div>
+                            <div style="font-weight:bold;">${displayName}</div>
+                            <div style="color:#666;font-size:14px;">${displayTag}</div>
+                            <div style="color:#999;font-size:12px;">${user.phone}</div>
+                        </div>
+                    `;
                     div.appendChild(item);
                 });
             }

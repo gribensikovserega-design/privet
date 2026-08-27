@@ -63,6 +63,7 @@ function saveData() {
         const usersObj = Object.fromEntries(usersDB);
         fs.writeFileSync('data.json', JSON.stringify({ users: usersObj }, null, 2));
         fs.writeFileSync('messages.json', JSON.stringify(messagesDB, null, 2));
+        console.log('Данные сохранены');
     } catch (error) {
         console.error('Ошибка сохранения:', error);
     }
@@ -204,7 +205,12 @@ app.post('/api/save-profile', (req, res) => {
     if (!usersDB.has(phone) || !usersDB.get(phone).verified) return res.status(400).json({ error: 'Не авторизован' });
     
     const cleanTag = tag.replace('@', '').toLowerCase();
-    if (tags.has(cleanTag) && usersDB.get(phone).tag !== cleanTag) return res.status(400).json({ error: 'Тег занят' });
+    
+    // Проверяем уникальность тега
+    if (tags.has(cleanTag) && usersDB.get(phone).tag !== cleanTag) {
+        return res.status(400).json({ error: 'Этот тег уже занят' });
+    }
+    
     if (!password || password.length < 6) return res.status(400).json({ error: 'Пароль мин 6 символов' });
     
     const user = usersDB.get(phone);
@@ -245,7 +251,7 @@ app.post('/api/login', (req, res) => {
         }
     });
     
-    if (!foundUser) return res.status(400).json({ error: 'Не найден' });
+    if (!foundUser) return res.status(400).json({ error: 'Пользователь не найден' });
     if (foundUser.password !== password) return res.status(400).json({ error: 'Неверный пароль' });
     
     res.json({
@@ -262,17 +268,18 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// Получение ВСЕХ пользователей (включая без профиля)
 app.get('/api/get-users', (req, res) => {
     const users = [];
     usersDB.forEach((value, key) => {
-        if (value.verified && value.firstName) {
+        if (value.verified) {
             users.push({
                 phone: key,
-                firstName: value.firstName,
-                lastName: value.lastName,
-                tag: value.tag,
-                avatar: value.avatar,
-                email: value.email
+                firstName: value.firstName || 'Пользователь',
+                lastName: value.lastName || '',
+                tag: value.tag || '',
+                avatar: value.avatar || null,
+                email: value.email || ''
             });
         }
     });
