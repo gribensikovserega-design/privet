@@ -6,298 +6,65 @@
     <title>Привет - Мессенджер</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #fff;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-        
-        .screen {
-            width: 100vw;
-            height: 100vh;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            position: fixed;
-            top: 0;
-            left: 0;
-        }
-        
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #fff; height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .screen { width: 100vw; height: 100vh; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; position: fixed; top: 0; left: 0; }
         .hidden { display: none !important; }
-        
         .welcome-logo { font-size: 100px; animation: bounce 2s infinite; }
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
-        
         .welcome-screen h1 { color: #0088cc; font-size: 40px; }
-        .welcome-screen p { color: #666; font-size: 20px; }
-        
-        .btn-primary {
-            padding: 15px 50px;
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        .btn-primary { padding: 15px 50px; background: #0088cc; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .btn-secondary {
-            padding: 15px 50px;
-            background: transparent;
-            color: #0088cc;
-            border: 2px solid #0088cc;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .profile-input {
-            width: 350px;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 18px;
-            outline: none;
-        }
+        .btn-secondary { padding: 15px 50px; background: transparent; color: #0088cc; border: 2px solid #0088cc; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .profile-input { width: 350px; padding: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 18px; outline: none; }
         .profile-input:focus { border-color: #0088cc; }
-        
         .code-inputs { display: flex; gap: 15px; justify-content: center; }
-        .code-digit {
-            width: 60px;
-            height: 70px;
-            text-align: center;
-            font-size: 32px;
-            border: 3px solid #ddd;
-            border-radius: 15px;
-            outline: none;
-        }
+        .code-digit { width: 60px; height: 70px; text-align: center; font-size: 32px; border: 3px solid #ddd; border-radius: 15px; outline: none; }
         .code-digit:focus { border-color: #0088cc; }
-        
         .error-message { color: #ff3b30; font-size: 16px; display: none; }
-        
-        .test-code-display {
-            background: #f0f8ff;
-            border: 2px solid #0088cc;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: #0088cc;
-            display: none;
-        }
-        
-        .avatar-circle {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            border: 4px dashed #0088cc;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            overflow: hidden;
-            background: #f8f8f8;
-        }
+        .test-code-display { background: #f0f8ff; border: 2px solid #0088cc; border-radius: 10px; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #0088cc; display: none; }
+        .avatar-circle { width: 150px; height: 150px; border-radius: 50%; border: 4px dashed #0088cc; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; background: #f8f8f8; }
         .avatar-circle img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
         .plus-icon { font-size: 60px; color: #0088cc; }
-        
-        .messenger-container {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            background: white;
-        }
-        
-        .sidebar {
-            width: 350px;
-            min-width: 350px;
-            border-right: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-            background: #f8f8f8;
-            position: relative;
-        }
-        
-        .sidebar-header {
-            padding: 15px;
-            background: #0088cc;
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .messenger-container { width: 100vw; height: 100vh; display: flex; background: white; }
+        .sidebar { width: 350px; min-width: 350px; border-right: 1px solid #ddd; display: flex; flex-direction: column; background: #f8f8f8; position: relative; }
+        .sidebar-header { padding: 15px; background: #0088cc; color: white; display: flex; align-items: center; gap: 10px; }
         .sidebar-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
         .sidebar-header .user-name { flex: 1; font-weight: bold; font-size: 18px; }
-        
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
+        .logout-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
         .search-container { padding: 10px; background: #f8f8f8; position: relative; }
-        .search-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 25px;
-            font-size: 16px;
-            outline: none;
-            background: white;
-        }
-        
-        .search-results {
-            position: absolute;
-            top: 60px;
-            left: 10px;
-            right: 10px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            max-height: 400px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-        }
-        
-        .search-result-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            cursor: pointer;
-        }
+        .search-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 25px; font-size: 16px; outline: none; background: white; }
+        .search-results { position: absolute; top: 60px; left: 10px; right: 10px; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 100; display: none; }
+        .search-result-item { display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer; }
         .search-result-item:hover { background: #f0f0f0; }
-        .search-result-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        
         .chats-list { flex: 1; overflow-y: auto; }
-        
-        .chat-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-            position: relative;
-        }
+        .chat-item { display: flex; align-items: center; gap: 10px; padding: 15px; cursor: pointer; border-bottom: 1px solid #eee; }
         .chat-item:hover { background: #e6f2ff; }
         .chat-item.active { background: #d4e8ff; border-left: 4px solid #0088cc; }
         .chat-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-        
         .chat-area { flex: 1; display: flex; flex-direction: column; background: white; }
-        
-        .chat-area-header {
-            padding: 15px;
-            background: #0088cc;
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .chat-area-header { padding: 15px; background: #0088cc; color: white; display: flex; align-items: center; gap: 10px; }
         .chat-area-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        
         .typing-indicator { color: #a0d4ee; font-size: 14px; font-style: italic; }
-        
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .message {
-            max-width: 60%;
-            padding: 10px 15px;
-            border-radius: 15px;
-            word-wrap: break-word;
-            position: relative;
-        }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 60%; padding: 10px 15px; border-radius: 15px; word-wrap: break-word; position: relative; }
         .message.sent { background: #0088cc; color: white; align-self: flex-end; }
         .message.received { background: #e6e6e6; color: #333; align-self: flex-start; }
         .message img { max-width: 200px; border-radius: 10px; margin-top: 5px; }
-        
-        .message-actions {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: -20px;
-            gap: 5px;
-        }
+        .message-actions { display: none; position: absolute; right: 0; top: -20px; gap: 5px; }
         .message:hover .message-actions { display: flex; }
-        .message-actions button {
-            padding: 3px 8px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .chat-input-area {
-            display: flex;
-            padding: 20px;
-            gap: 10px;
-            background: #f8f8f8;
-            align-items: center;
-        }
-        .chat-input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 25px;
-            outline: none;
-            font-size: 16px;
-        }
-        .send-btn {
-            padding: 12px 25px;
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        
-        .photo-btn {
-            padding: 12px 15px;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-        }
-        
-        .no-chat-selected {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #999;
-            font-size: 20px;
-        }
+        .message-actions button { padding: 3px 8px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .chat-input-area { display: flex; padding: 20px; gap: 10px; background: #f8f8f8; align-items: center; }
+        .chat-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; font-size: 16px; }
+        .send-btn { padding: 12px 25px; background: #0088cc; color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .photo-btn { padding: 12px 15px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 50%; cursor: pointer; font-size: 20px; }
+        .no-chat-selected { flex: 1; display: flex; justify-content: center; align-items: center; color: #999; font-size: 20px; }
+        .create-btn { padding: 8px 15px; background: #4cd964; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .group-icon { width: 50px; height: 50px; border-radius: 50%; background: #4cd964; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
+        .channel-icon { width: 50px; height: 50px; border-radius: 50%; background: #ff9500; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
     </style>
 </head>
 <body>
-    <!-- Экран приветствия -->
+    <!-- Экраны -->
     <div class="screen welcome-screen" id="welcomeScreen">
         <div class="welcome-logo">👋</div>
         <h1>Добро пожаловать в Привет!</h1>
@@ -306,10 +73,8 @@
         <button class="btn-secondary" onclick="showLoginScreen()">У меня есть аккаунт</button>
     </div>
     
-    <!-- Экран входа -->
     <div class="screen hidden" id="loginScreen">
         <h2>Вход в аккаунт</h2>
-        <p style="color:#666;">Введите номер, тег или почту</p>
         <input type="text" class="profile-input" id="loginInput" placeholder="Номер, @тег или почта">
         <input type="password" class="profile-input" id="loginPassword" placeholder="Пароль">
         <div class="error-message" id="loginError"></div>
@@ -318,21 +83,17 @@
         <p style="color:#0088cc;cursor:pointer;" onclick="showQRCode()">Войти по QR-коду</p>
     </div>
     
-    <!-- Экран QR-кода -->
     <div class="screen hidden" id="qrScreen">
         <h2>Вход по QR-коду</h2>
-        <p style="color:#666;">Откройте сайт на телефоне и отсканируйте</p>
         <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 0 20px rgba(0,0,0,0.1);">
             <img id="qrImage" src="" alt="QR" style="width:250px;height:250px;">
         </div>
-        <p id="qrStatus" style="color:#666;">Ожидание...</p>
+        <p id="qrStatus">Ожидание...</p>
         <button class="btn-secondary" onclick="cancelQR()">Отмена</button>
     </div>
     
-    <!-- Экран ввода номера -->
     <div class="screen hidden" id="phoneScreen">
         <h2>Введите номер телефона</h2>
-        <p style="color:#666;">Проверьте код страны и введите номер</p>
         <div style="display:flex;gap:10px;">
             <input type="text" class="profile-input" id="countryCode" value="+7" maxlength="3" style="width:80px;text-align:center;">
             <input type="tel" class="profile-input" id="phoneInput" placeholder="999 123-45-67" maxlength="12" style="width:260px;">
@@ -342,10 +103,8 @@
         <button class="btn-secondary" onclick="showWelcomeScreen()">← Назад</button>
     </div>
     
-    <!-- Экран ввода кода -->
     <div class="screen hidden" id="codeScreen">
         <h2>Введите код</h2>
-        <p style="color:#666;">Код отправлен на номер <span id="displayPhone"></span></p>
         <div class="test-code-display" id="testCodeDisplay"></div>
         <div class="code-inputs">
             <input type="text" class="code-digit" maxlength="1" oninput="moveToNext(this,0)">
@@ -359,7 +118,6 @@
         <button class="btn-primary" onclick="verifyCode()">Подтвердить</button>
     </div>
     
-    <!-- Экран профиля -->
     <div class="screen hidden" id="profileScreen">
         <h2>Создание профиля</h2>
         <div class="avatar-circle" onclick="document.getElementById('avatarInput').click()">
@@ -375,7 +133,7 @@
         </div>
         <input type="text" class="profile-input" id="birthDate" placeholder="00.00.0000" maxlength="10" oninput="formatDate(this)">
         <input type="email" class="profile-input" id="emailInput" placeholder="Почта (по желанию)">
-        <input type="password" class="profile-input" id="passwordInput" placeholder="Пароль (мин. 6 символов)">
+        <input type="password" class="profile-input" id="passwordInput" placeholder="Пароль (мин. 6)">
         <div class="error-message" id="profileError"></div>
         <button class="btn-primary" onclick="saveProfile()">Готово</button>
     </div>
@@ -386,6 +144,7 @@
             <div class="sidebar-header">
                 <img id="sidebarAvatar" src="" style="display:none;">
                 <span class="user-name" id="sidebarUserName"></span>
+                <button class="create-btn" onclick="showCreateGroup()">+ Создать</button>
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
             <div class="search-container">
@@ -411,15 +170,32 @@
         </div>
     </div>
     
+    <!-- Модальное окно создания группы -->
+    <div class="screen hidden" id="createGroupScreen" style="background:rgba(0,0,0,0.5);">
+        <div style="background:white;padding:30px;border-radius:10px;width:400px;display:flex;flex-direction:column;gap:15px;">
+            <h2 style="text-align:center;">Создать</h2>
+            <input type="text" class="profile-input" id="groupName" placeholder="Название" style="width:100%;">
+            <select class="profile-input" id="groupType" style="width:100%;">
+                <option value="group">Группа</option>
+                <option value="channel">Канал</option>
+            </select>
+            <button class="btn-primary" onclick="createGroup()">Создать</button>
+            <button class="btn-secondary" onclick="closeCreateGroup()">Отмена</button>
+        </div>
+    </div>
+    
     <script>
         let ws;
         let currentUser = null;
         let currentPhone = '';
         let avatarData = null;
         let activeChat = null;
+        let activeGroup = null;
         let allUsers = [];
         let chats = [];
         let chatMessages = {};
+        let groups = [];
+        let groupMessages = {};
         let qrToken = null;
         let qrCheckInterval = null;
         let typingTimeout = null;
@@ -427,110 +203,50 @@
         function checkAuth() {
             const savedPhone = localStorage.getItem('currentPhone');
             if (savedPhone) {
-                fetch('/api/check-auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: savedPhone })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        currentUser = data.user;
-                        currentPhone = savedPhone;
-                        enterMessenger();
-                    } else {
-                        localStorage.removeItem('currentPhone');
-                    }
-                })
-                .catch(err => console.error(err));
+                fetch('/api/check-auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: savedPhone }) })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) { currentUser = data.user; currentPhone = savedPhone; enterMessenger(); }
+                        else localStorage.removeItem('currentPhone');
+                    });
             }
         }
         checkAuth();
         
-        function showWelcomeScreen() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('welcomeScreen').classList.remove('hidden');
-        }
-        function showPhoneScreen() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('phoneScreen').classList.remove('hidden');
-        }
-        function showLoginScreen() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('loginScreen').classList.remove('hidden');
-        }
-        function showCodeScreen() {
-            document.getElementById('phoneScreen').classList.add('hidden');
-            document.getElementById('codeScreen').classList.remove('hidden');
-            document.getElementById('displayPhone').textContent = currentPhone;
-            document.querySelector('.code-digit').focus();
-        }
-        function moveToNext(input, index) {
-            if (input.value.length === 1 && index < 5) {
-                document.querySelectorAll('.code-digit')[index + 1].focus();
-            }
-        }
+        function showWelcomeScreen() { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById('welcomeScreen').classList.remove('hidden'); }
+        function showPhoneScreen() { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById('phoneScreen').classList.remove('hidden'); }
+        function showLoginScreen() { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById('loginScreen').classList.remove('hidden'); }
+        function showCodeScreen() { document.getElementById('phoneScreen').classList.add('hidden'); document.getElementById('codeScreen').classList.remove('hidden'); document.getElementById('displayPhone').textContent = currentPhone; document.querySelector('.code-digit').focus(); }
+        function moveToNext(input, index) { if (input.value.length === 1 && index < 5) document.querySelectorAll('.code-digit')[index + 1].focus(); }
         
         function showQRCode() {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('qrScreen').classList.remove('hidden');
             fetch('/api/generate-qr', { method: 'POST' })
                 .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        qrToken = data.qrToken;
-                        document.getElementById('qrImage').src = data.qrImage;
-                        qrCheckInterval = setInterval(checkQRStatus, 2000);
-                    }
-                });
+                .then(data => { if (data.success) { qrToken = data.qrToken; document.getElementById('qrImage').src = data.qrImage; qrCheckInterval = setInterval(checkQRStatus, 2000); } });
         }
         function checkQRStatus() {
             if (!qrToken) return;
-            fetch('/api/check-qr', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ qrToken })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'confirmed') {
-                    clearInterval(qrCheckInterval);
-                    currentUser = data.user;
-                    currentPhone = data.user.phone;
-                    localStorage.setItem('currentPhone', currentPhone);
-                    enterMessenger();
-                } else if (data.status === 'expired') {
-                    clearInterval(qrCheckInterval);
-                    document.getElementById('qrStatus').textContent = 'QR устарел';
-                }
-            });
+            fetch('/api/check-qr', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ qrToken }) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'confirmed') { clearInterval(qrCheckInterval); currentUser = data.user; currentPhone = data.user.phone; localStorage.setItem('currentPhone', currentPhone); enterMessenger(); }
+                    else if (data.status === 'expired') { clearInterval(qrCheckInterval); document.getElementById('qrStatus').textContent = 'QR устарел'; }
+                });
         }
-        function cancelQR() {
-            clearInterval(qrCheckInterval);
-            showLoginScreen();
-        }
+        function cancelQR() { clearInterval(qrCheckInterval); showLoginScreen(); }
         
         function login() {
             const login = document.getElementById('loginInput').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             if (!login || !password) return showError('loginError', 'Введите данные');
-            
-            fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ login, password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    currentUser = data.user;
-                    currentPhone = data.user.phone;
-                    localStorage.setItem('currentPhone', currentPhone);
-                    enterMessenger();
-                } else {
-                    showError('loginError', data.error || 'Ошибка');
-                }
-            });
+            fetch('/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ login, password }) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) { currentUser = data.user; currentPhone = data.user.phone; localStorage.setItem('currentPhone', currentPhone); enterMessenger(); }
+                    else showError('loginError', data.error || 'Ошибка');
+                });
         }
         
         function sendCode() {
@@ -538,21 +254,11 @@
             const phoneNumber = document.getElementById('phoneInput').value.trim();
             const fullPhone = countryCode + phoneNumber;
             if (phoneNumber.length < 10) return showError('phoneError', 'Введите номер');
-            
-            fetch('/api/send-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: fullPhone })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    currentPhone = fullPhone;
-                    showCodeScreen();
-                    document.getElementById('testCodeDisplay').textContent = 'Код: ' + data.code;
-                    document.getElementById('testCodeDisplay').style.display = 'block';
-                }
-            });
+            fetch('/api/send-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: fullPhone }) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) { currentPhone = fullPhone; showCodeScreen(); document.getElementById('testCodeDisplay').textContent = 'Код: ' + data.code; document.getElementById('testCodeDisplay').style.display = 'block'; }
+                });
         }
         
         function verifyCode() {
@@ -560,39 +266,22 @@
             let code = '';
             inputs.forEach(i => code += i.value);
             if (code.length !== 6) return showError('codeError', 'Введите 6 цифр');
-            
-            fetch('/api/verify-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: currentPhone, code })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    localStorage.setItem('currentPhone', currentPhone);
-                    if (data.needProfile) {
-                        document.getElementById('codeScreen').classList.add('hidden');
-                        document.getElementById('profileScreen').classList.remove('hidden');
-                    } else {
-                        currentUser = data.user;
-                        enterMessenger();
-                    }
-                } else {
-                    showError('codeError', data.error);
-                }
-            });
+            fetch('/api/verify-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: currentPhone, code }) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        localStorage.setItem('currentPhone', currentPhone);
+                        if (data.needProfile) { document.getElementById('codeScreen').classList.add('hidden'); document.getElementById('profileScreen').classList.remove('hidden'); }
+                        else { currentUser = data.user; enterMessenger(); }
+                    } else showError('codeError', data.error);
+                });
         }
         
         function uploadAvatar(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = e => {
-                    avatarData = e.target.result;
-                    document.getElementById('avatarPreview').src = avatarData;
-                    document.getElementById('avatarPreview').classList.remove('hidden');
-                    document.getElementById('plusIcon').classList.add('hidden');
-                };
+                reader.onload = e => { avatarData = e.target.result; document.getElementById('avatarPreview').src = avatarData; document.getElementById('avatarPreview').classList.remove('hidden'); document.getElementById('plusIcon').classList.add('hidden'); };
                 reader.readAsDataURL(file);
             }
         }
@@ -612,54 +301,37 @@
             const birthDate = document.getElementById('birthDate').value.trim();
             const email = document.getElementById('emailInput').value.trim();
             const password = document.getElementById('passwordInput').value.trim();
-            
             if (!firstName) return showError('profileError', 'Введите имя');
             if (!tag) return showError('profileError', 'Введите тег');
             if (birthDate.length !== 10) return showError('profileError', 'Дата: 00.00.0000');
             if (password.length < 6) return showError('profileError', 'Пароль мин 6');
-            
-            fetch('/api/save-profile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: currentPhone, firstName, lastName, tag, birthDate, email, avatar: avatarData, password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    localStorage.setItem('currentPhone', currentPhone);
-                    currentUser = data.user;
-                    enterMessenger();
-                } else {
-                    showError('profileError', data.error);
-                }
-            });
+            fetch('/api/save-profile', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: currentPhone, firstName, lastName, tag, birthDate, email, avatar: avatarData, password }) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) { localStorage.setItem('currentPhone', currentPhone); currentUser = data.user; enterMessenger(); }
+                    else showError('profileError', data.error);
+                });
         }
         
         function enterMessenger() {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('messengerContainer').classList.remove('hidden');
             document.getElementById('sidebarUserName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
-            if (currentUser.avatar) {
-                document.getElementById('sidebarAvatar').src = currentUser.avatar;
-                document.getElementById('sidebarAvatar').style.display = 'block';
-            }
+            if (currentUser.avatar) { document.getElementById('sidebarAvatar').src = currentUser.avatar; document.getElementById('sidebarAvatar').style.display = 'block'; }
             connectWebSocket();
             loadAllUsers();
+            loadGroups();
         }
         
-        function logout() {
-            localStorage.removeItem('currentPhone');
-            location.reload();
-        }
+        function logout() { localStorage.removeItem('currentPhone'); location.reload(); }
         
         function connectWebSocket() {
             ws = new WebSocket(`ws://${window.location.host}`);
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ type: 'join', phone: currentUser.phone, name: currentUser.firstName + ' ' + currentUser.lastName, avatar: currentUser.avatar }));
-            };
+            ws.onopen = () => { ws.send(JSON.stringify({ type: 'join', phone: currentUser.phone, name: currentUser.firstName + ' ' + currentUser.lastName, avatar: currentUser.avatar })); };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'private_message') handleIncomingMessage(data.message);
+                if (data.type === 'group_message') handleGroupMessage(data.message);
                 if (data.type === 'users') updateOnlineUsers(data.users);
                 if (data.type === 'typing') handleTypingIndicator(data);
                 if (data.type === 'message_deleted') handleMessageDeleted(data);
@@ -671,17 +343,32 @@
         function loadAllUsers() {
             fetch('/api/get-users')
                 .then(res => res.json())
+                .then(data => { allUsers = data.users.filter(u => u.phone !== currentUser.phone); });
+        }
+        
+        function loadGroups() {
+            fetch('/api/get-groups')
+                .then(res => res.json())
+                .then(data => { groups = data.groups || []; renderChatsList(); });
+        }
+        
+        function showCreateGroup() { document.getElementById('createGroupScreen').classList.remove('hidden'); }
+        function closeCreateGroup() { document.getElementById('createGroupScreen').classList.add('hidden'); }
+        
+        function createGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            const type = document.getElementById('groupType').value;
+            if (!name) return alert('Введите название');
+            fetch('/api/create-group', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: currentPhone, name, type }) })
+                .then(res => res.json())
                 .then(data => {
-                    allUsers = data.users.filter(u => u.phone !== currentUser.phone);
-                    console.log('Пользователей загружено:', allUsers.length);
-                })
-                .catch(err => console.error('Ошибка загрузки:', err));
+                    if (data.success) { closeCreateGroup(); document.getElementById('groupName').value = ''; loadGroups(); openGroup(data.group); }
+                });
         }
         
         function searchUsers(query) {
             const div = document.getElementById('searchResults');
             if (!query || query.length < 1) { div.style.display = 'none'; return; }
-            
             const q = query.toLowerCase();
             const results = allUsers.filter(u => 
                 (u.firstName + ' ' + (u.lastName || '')).toLowerCase().includes(q) ||
@@ -689,7 +376,6 @@
                 u.phone.includes(query) ||
                 u.phone.replace(/\D/g, '').includes(query.replace(/\D/g, ''))
             );
-            
             if (results.length === 0) {
                 div.innerHTML = '<div style="padding:15px;color:#666;">Ничего не найдено</div>';
             } else {
@@ -698,18 +384,9 @@
                     const item = document.createElement('div');
                     item.className = 'search-result-item';
                     item.onclick = () => startChat(user);
-                    
                     const displayName = user.firstName + ' ' + (user.lastName || '');
                     const displayTag = user.tag ? '@' + user.tag : 'Нет тега';
-                    
-                    item.innerHTML = `
-                        ${user.avatar ? `<img src="${user.avatar}">` : `<div style="width:40px;height:40px;border-radius:50%;background:#0088cc;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">${user.firstName[0]}</div>`}
-                        <div>
-                            <div style="font-weight:bold;">${displayName}</div>
-                            <div style="color:#666;font-size:14px;">${displayTag}</div>
-                            <div style="color:#999;font-size:12px;">${user.phone}</div>
-                        </div>
-                    `;
+                    item.innerHTML = `${user.avatar ? `<img src="${user.avatar}">` : `<div style="width:40px;height:40px;border-radius:50%;background:#0088cc;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">${user.firstName[0]}</div>`}<div><div style="font-weight:bold;">${displayName}</div><div style="color:#666;font-size:14px;">${displayTag}</div><div style="color:#999;font-size:12px;">${user.phone}</div></div>`;
                     div.appendChild(item);
                 });
             }
@@ -719,33 +396,80 @@
         function startChat(user) {
             document.getElementById('searchResults').style.display = 'none';
             document.getElementById('searchInput').value = '';
-            if (!chats.find(c => c.phone === user.phone)) {
-                chats.push(user);
-                chatMessages[user.phone] = [];
-                loadChatHistory(user.phone);
-            }
+            if (!chats.find(c => c.phone === user.phone)) { chats.push(user); chatMessages[user.phone] = []; }
             activeChat = user;
+            activeGroup = null;
             renderChatsList();
             openChat(user);
         }
         
-        function loadChatHistory(otherPhone) {
-            fetch('/api/get-messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone1: currentPhone, phone2: otherPhone })
-            })
-            .then(res => res.json())
-            .then(data => {
-                chatMessages[otherPhone] = data.messages || [];
-                if (activeChat && activeChat.phone === otherPhone) renderMessages(activeChat);
-                renderChatsList();
+        function openGroup(group) {
+            activeGroup = group;
+            activeChat = null;
+            document.getElementById('noChatSelected').style.display = 'none';
+            document.getElementById('chatAreaHeader').style.display = 'flex';
+            document.getElementById('chatMessages').style.display = 'flex';
+            document.getElementById('chatInputArea').style.display = 'flex';
+            document.getElementById('chatPartnerName').textContent = group.name + (group.type === 'channel' ? ' 📢' : ' 👥');
+            document.getElementById('chatPartnerAvatar').style.display = 'none';
+            
+            if (group.type === 'channel' && group.creator !== currentPhone) {
+                document.getElementById('chatInputArea').style.display = 'none';
+            }
+            
+            fetch('/api/get-group-messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ groupId: group.id }) })
+                .then(res => res.json())
+                .then(data => {
+                    groupMessages[group.id] = data.messages || [];
+                    renderGroupMessages(group);
+                });
+            renderChatsList();
+        }
+        
+        function renderGroupMessages(group) {
+            const div = document.getElementById('chatMessages');
+            div.innerHTML = '';
+            const messages = groupMessages[group.id] || [];
+            messages.forEach(msg => {
+                const el = document.createElement('div');
+                const isSent = msg.phone === currentPhone;
+                el.className = `message ${isSent ? 'sent' : 'received'}`;
+                const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                el.innerHTML = `<div style="font-size:12px;font-weight:bold;opacity:0.8;">${msg.userName}</div>${msg.photo ? `<img src="${msg.photo}">` : ''}${msg.text ? `<div>${msg.text}</div>` : ''}<div style="font-size:10px;opacity:0.7;margin-top:5px;">${time}</div>`;
+                div.appendChild(el);
             });
+            div.scrollTop = div.scrollHeight;
+        }
+        
+        function handleGroupMessage(message) {
+            if (!groupMessages[message.groupId]) groupMessages[message.groupId] = [];
+            groupMessages[message.groupId].push(message);
+            if (activeGroup && activeGroup.id === message.groupId) {
+                const div = document.getElementById('chatMessages');
+                const el = document.createElement('div');
+                const isSent = message.phone === currentPhone;
+                el.className = `message ${isSent ? 'sent' : 'received'}`;
+                const time = new Date(message.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                el.innerHTML = `<div style="font-size:12px;font-weight:bold;opacity:0.8;">${message.userName}</div>${message.photo ? `<img src="${message.photo}">` : ''}${message.text ? `<div>${message.text}</div>` : ''}<div style="font-size:10px;opacity:0.7;margin-top:5px;">${time}</div>`;
+                div.appendChild(el);
+                div.scrollTop = div.scrollHeight;
+            }
         }
         
         function renderChatsList() {
             const div = document.getElementById('chatsList');
             div.innerHTML = '';
+            
+            // Группы
+            groups.forEach(group => {
+                const item = document.createElement('div');
+                item.className = 'chat-item' + (activeGroup && activeGroup.id === group.id ? ' active' : '');
+                item.onclick = () => openGroup(group);
+                item.innerHTML = `<div class="${group.type === 'channel' ? 'channel-icon' : 'group-icon'}">${group.type === 'channel' ? '📢' : '👥'}</div><div style="flex:1;"><div style="font-weight:bold;">${group.name}</div><div style="color:#666;font-size:14px;">${group.type === 'channel' ? 'Канал' : 'Группа'} • ${group.members.length} уч.</div></div>`;
+                div.appendChild(item);
+            });
+            
+            // Личные чаты
             chats.forEach(chat => {
                 const item = document.createElement('div');
                 item.className = 'chat-item' + (activeChat && activeChat.phone === chat.phone ? ' active' : '');
@@ -764,10 +488,8 @@
             document.getElementById('chatMessages').style.display = 'flex';
             document.getElementById('chatInputArea').style.display = 'flex';
             document.getElementById('chatPartnerName').textContent = user.firstName + ' ' + user.lastName;
-            if (user.avatar) {
-                document.getElementById('chatPartnerAvatar').src = user.avatar;
-                document.getElementById('chatPartnerAvatar').style.display = 'block';
-            }
+            if (user.avatar) { document.getElementById('chatPartnerAvatar').src = user.avatar; document.getElementById('chatPartnerAvatar').style.display = 'block'; }
+            else document.getElementById('chatPartnerAvatar').style.display = 'none';
             renderMessages(user);
             renderChatsList();
         }
@@ -785,18 +507,9 @@
             const isSent = message.phone === currentUser.phone;
             el.className = `message ${isSent ? 'sent' : 'received'}`;
             el.id = 'msg-' + message.id;
-            
             const time = new Date(message.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             const reactions = Object.values(message.reactions || {}).join(' ');
-            
-            el.innerHTML = `
-                <div style="font-size:12px;font-weight:bold;opacity:0.8;">${message.userName}${message.edited ? ' (ред.)' : ''}</div>
-                ${message.photo ? `<img src="${message.photo}" alt="">` : ''}
-                ${message.text ? `<div>${message.text}</div>` : ''}
-                ${reactions ? `<div>${reactions}</div>` : ''}
-                <div style="font-size:10px;opacity:0.7;margin-top:5px;">${time}</div>
-                ${isSent ? `<div class="message-actions"><button onclick="editMessage(${message.id})">✏️</button><button onclick="deleteMessage(${message.id})">🗑️</button><button onclick="reactMessage(${message.id}, '👍')">👍</button><button onclick="reactMessage(${message.id}, '❤️')">❤️</button></div>` : ''}
-            `;
+            el.innerHTML = `<div style="font-size:12px;font-weight:bold;opacity:0.8;">${message.userName}${message.edited ? ' (ред.)' : ''}</div>${message.photo ? `<img src="${message.photo}">` : ''}${message.text ? `<div>${message.text}</div>` : ''}${reactions ? `<div>${reactions}</div>` : ''}<div style="font-size:10px;opacity:0.7;margin-top:5px;">${time}</div>${isSent ? `<div class="message-actions"><button onclick="editMessage(${message.id})">✏️</button><button onclick="deleteMessage(${message.id})">🗑️</button><button onclick="reactMessage(${message.id}, '👍')">👍</button><button onclick="reactMessage(${message.id}, '❤️')">❤️</button></div>` : ''}`;
             div.appendChild(el);
             div.scrollTop = div.scrollHeight;
         }
@@ -842,7 +555,16 @@
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            if (text && ws && activeChat) {
+            if (!text || !ws) return;
+            
+            if (activeGroup) {
+                ws.send(JSON.stringify({ type: 'group_message', groupId: activeGroup.id, text }));
+                const msg = { id: Date.now(), phone: currentUser.phone, userName: currentUser.firstName, text, timestamp: new Date().toISOString(), groupId: activeGroup.id };
+                if (!groupMessages[activeGroup.id]) groupMessages[activeGroup.id] = [];
+                groupMessages[activeGroup.id].push(msg);
+                renderGroupMessages(activeGroup);
+                input.value = '';
+            } else if (activeChat) {
                 ws.send(JSON.stringify({ type: 'private_message', toPhone: activeChat.phone, text }));
                 const msg = { id: Date.now(), phone: currentUser.phone, userName: currentUser.firstName, text, timestamp: new Date().toISOString(), toPhone: activeChat.phone, reactions: {} };
                 if (!chatMessages[activeChat.phone]) chatMessages[activeChat.phone] = [];
@@ -861,66 +583,26 @@
             fetch('/api/upload-photo', { method: 'POST', body: formData })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success && ws && activeChat) {
-                        ws.send(JSON.stringify({ type: 'private_message', toPhone: activeChat.phone, text: '', photo: data.url }));
-                        const msg = { id: Date.now(), phone: currentUser.phone, userName: currentUser.firstName, photo: data.url, timestamp: new Date().toISOString(), toPhone: activeChat.phone, reactions: {} };
-                        if (!chatMessages[activeChat.phone]) chatMessages[activeChat.phone] = [];
-                        chatMessages[activeChat.phone].push(msg);
-                        addMessageToDOM(msg);
-                        renderChatsList();
+                    if (data.success && ws) {
+                        if (activeGroup) {
+                            ws.send(JSON.stringify({ type: 'group_message', groupId: activeGroup.id, text: '', photo: data.url }));
+                        } else if (activeChat) {
+                            ws.send(JSON.stringify({ type: 'private_message', toPhone: activeChat.phone, text: '', photo: data.url }));
+                        }
                     }
                 });
         }
         
-        function handleTyping() {
-            if (!ws || !activeChat) return;
-            ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: true }));
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: false }));
-            }, 2000);
-        }
+        function handleTyping() { if (!ws || !activeChat) return; ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: true })); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => { ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: false })); }, 2000); }
+        function handleKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
+        function deleteMessage(messageId) { if (!activeChat) return; ws.send(JSON.stringify({ type: 'delete_message', toPhone: activeChat.phone, messageId })); }
+        function editMessage(messageId) { const newText = prompt('Новый текст:'); if (newText && activeChat) ws.send(JSON.stringify({ type: 'edit_message', toPhone: activeChat.phone, messageId, newText })); }
+        function reactMessage(messageId, emoji) { if (!activeChat) return; ws.send(JSON.stringify({ type: 'reaction', toPhone: activeChat.phone, messageId, emoji })); }
+        function updateOnlineUsers(users) {}
+        function showError(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.style.display = 'block'; }
         
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') sendMessage();
-        }
-        
-        function deleteMessage(messageId) {
-            if (!activeChat) return;
-            ws.send(JSON.stringify({ type: 'delete_message', toPhone: activeChat.phone, messageId }));
-        }
-        
-        function editMessage(messageId) {
-            const newText = prompt('Новый текст:');
-            if (newText && activeChat) {
-                ws.send(JSON.stringify({ type: 'edit_message', toPhone: activeChat.phone, messageId, newText }));
-            }
-        }
-        
-        function reactMessage(messageId, emoji) {
-            if (!activeChat) return;
-            ws.send(JSON.stringify({ type: 'reaction', toPhone: activeChat.phone, messageId, emoji }));
-        }
-        
-        function updateOnlineUsers(users) {
-            // Обновление статусов
-        }
-        
-        function showError(id, msg) {
-            const el = document.getElementById(id);
-            el.textContent = msg;
-            el.style.display = 'block';
-        }
-        
-        document.getElementById('phoneInput').addEventListener('input', function() {
-            document.getElementById('continueBtn').disabled = this.value.trim().length < 10;
-        });
-        
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.search-container')) {
-                document.getElementById('searchResults').style.display = 'none';
-            }
-        });
+        document.getElementById('phoneInput').addEventListener('input', function() { document.getElementById('continueBtn').disabled = this.value.trim().length < 10; });
+        document.addEventListener('click', function(e) { if (!e.target.closest('.search-container')) document.getElementById('searchResults').style.display = 'none'; });
     </script>
 </body>
 </html>
