@@ -5,14 +5,30 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads';
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir);
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + Math.random().toString(36).substring(7) + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 const SMS_API_ID = '80092059-6EB2-9425-83AF-59D4B555B8AE';
 
@@ -20,6 +36,7 @@ let usersDB = new Map();
 let tags = new Set();
 let onlineUsers = new Map();
 let qrSessions = new Map();
+let messagesDB = {};
 
 function loadData() {
     try {
@@ -28,15 +45,16 @@ function loadData() {
             if (data.users) {
                 usersDB = new Map(Object.entries(data.users));
                 usersDB.forEach((user) => {
-                    if (user.tag) {
-                        tags.add(user.tag);
-                    }
+                    if (user.tag) tags.add(user.tag);
                 });
             }
         }
+        if (fs.existsSync('messages.json')) {
+            messagesDB = JSON.parse(fs.readFileSync('messages.json', 'utf8'));
+        }
         console.log('Данные загружены');
     } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
+        console.error('Ошибка загрузки:', error);
     }
 }
 
@@ -44,9 +62,9 @@ function saveData() {
     try {
         const usersObj = Object.fromEntries(usersDB);
         fs.writeFileSync('data.json', JSON.stringify({ users: usersObj }, null, 2));
-        console.log('Данные сохранены');
+        fs.writeFileSync('messages.json', JSON.stringify(messagesDB, null, 2));
     } catch (error) {
-        console.error('Ошибка сохранения данных:', error);
+        console.error('Ошибка сохранения:', error);
     }
 }
 
@@ -60,46 +78,43 @@ function generateQRToken() {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
+function getChatKey(phone1, phone2) {
+    return [phone1, phone2].sort().join('_');
+}
+
 async function sendSMS(phone, message) {
     try {
         const cleanPhone = phone.replace(/\D/g, '');
         const smsUrl = `https://sms.ru/sms/send?api_id=${SMS_API_ID}&to=${cleanPhone}&msg=${encodeURIComponent(message)}&json=1`;
         const response = await fetch(smsUrl);
-        const data = await response.json();
-        console.log('SMS.ru ответ:', JSON.stringify(data));
-        return data;
+        return await response.json();
     } catch (error) {
-        console.error('Ошибка отправки SMS:', error);
+        console.error('SMS ошибка:', error);
         return null;
     }
 }
 
-// Генерация QR-кода
+// Загрузка фото
+app.post('/api/upload-photo', upload.single('photo'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Файл не загружен' });
+    }
+    res.json({ success: true, url: '/uploads/' + req.file.filename });
+});
+
+// QR-коды
 app.post('/api/generate-qr', async (req, res) => {
     const qrToken = generateQRToken();
-    
-    qrSessions.set(qrToken, {
-        status: 'pending',
-        phone: null,
-        createdAt: Date.now()
-    });
-    
-    const qrData = JSON.stringify({ token: qrToken, type: 'qr_login' });
-    const qrImage = await QRCode.toDataURL(qrData);
-    
+    qrSessions.set(qrToken, { status: 'pending', phone: null, createdAt: Date.now() });
+    const qrImage = await QRCode.toDataURL(JSON.stringify({ token: qrToken, type: 'qr_login' }));
     res.json({ success: true, qrToken, qrImage });
 });
 
-// Проверка статуса QR-кода
 app.post('/api/check-qr', (req, res) => {
     const { qrToken } = req.body;
-    
-    if (!qrSessions.has(qrToken)) {
-        return res.json({ status: 'expired' });
-    }
+    if (!qrSessions.has(qrToken)) return res.json({ status: 'expired' });
     
     const session = qrSessions.get(qrToken);
-    
     if (session.status === 'confirmed' && session.phone) {
         const user = usersDB.get(session.phone);
         if (user && user.verified) {
@@ -118,103 +133,50 @@ app.post('/api/check-qr', (req, res) => {
             });
         }
     }
-    
     if (Date.now() - session.createdAt > 120000) {
         qrSessions.delete(qrToken);
         return res.json({ status: 'expired' });
     }
-    
     res.json({ status: session.status });
 });
 
-// Подтверждение QR-входа
 app.post('/api/confirm-qr', (req, res) => {
     const { qrToken, phone } = req.body;
-    
-    if (!qrSessions.has(qrToken)) {
-        return res.status(400).json({ error: 'QR-код устарел' });
-    }
-    
-    if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
-        return res.status(400).json({ error: 'Пользователь не авторизован' });
-    }
+    if (!qrSessions.has(qrToken)) return res.status(400).json({ error: 'QR устарел' });
+    if (!usersDB.has(phone) || !usersDB.get(phone).verified) return res.status(400).json({ error: 'Не авторизован' });
     
     qrSessions.get(qrToken).status = 'confirmed';
     qrSessions.get(qrToken).phone = phone;
-    
     res.json({ success: true });
 });
 
-// Сканирование QR-кода (получение данных)
-app.post('/api/scan-qr', (req, res) => {
-    const { qrToken, phone } = req.body;
-    
-    if (!qrSessions.has(qrToken)) {
-        return res.status(400).json({ error: 'QR-код устарел' });
-    }
-    
-    if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
-        return res.status(400).json({ error: 'Пользователь не авторизован' });
-    }
-    
-    const user = usersDB.get(phone);
-    
-    res.json({
-        success: true,
-        confirmData: {
-            qrToken,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            avatar: user.avatar
-        }
-    });
-});
-
+// Отправка кода
 app.post('/api/send-code', async (req, res) => {
     const { phone } = req.body;
-    
-    if (!phone || phone.length < 10) {
-        return res.status(400).json({ error: 'Введите корректный номер' });
-    }
+    if (!phone || phone.length < 10) return res.status(400).json({ error: 'Некорректный номер' });
     
     const code = generateCode();
-    
     if (!usersDB.has(phone)) {
-        usersDB.set(phone, { 
-            code, 
-            verified: false,
-            createdAt: Date.now()
-        });
+        usersDB.set(phone, { code, verified: false, createdAt: Date.now() });
     } else {
         usersDB.get(phone).code = code;
     }
-    
     saveData();
-    
     console.log(`📱 Код для ${phone}: ${code}`);
     
     try {
-        const smsResult = await sendSMS(phone, `Ваш код подтверждения: ${code}`);
-        console.log('SMS результат:', smsResult);
-    } catch (error) {
-        console.error('Ошибка SMS:', error);
-    }
+        await sendSMS(phone, `Ваш код: ${code}`);
+    } catch (e) {}
     
-    res.json({ success: true, code: code });
+    res.json({ success: true, code });
 });
 
 app.post('/api/verify-code', (req, res) => {
     const { phone, code } = req.body;
-    
-    if (!usersDB.has(phone)) {
-        return res.status(400).json({ error: 'Пользователь не найден' });
-    }
+    if (!usersDB.has(phone)) return res.status(400).json({ error: 'Не найден' });
     
     const user = usersDB.get(phone);
-    
-    if (user.code !== code) {
-        return res.status(400).json({ error: 'Неверный код' });
-    }
+    if (user.code !== code) return res.status(400).json({ error: 'Неверный код' });
     
     user.verified = true;
     saveData();
@@ -234,32 +196,19 @@ app.post('/api/verify-code', (req, res) => {
             needProfile: false
         });
     }
-    
     res.json({ success: true, needProfile: true });
 });
 
 app.post('/api/save-profile', (req, res) => {
     const { phone, firstName, lastName, tag, birthDate, email, avatar, password } = req.body;
-    
-    if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
-        return res.status(400).json({ error: 'Пользователь не авторизован' });
-    }
+    if (!usersDB.has(phone) || !usersDB.get(phone).verified) return res.status(400).json({ error: 'Не авторизован' });
     
     const cleanTag = tag.replace('@', '').toLowerCase();
-    
-    if (tags.has(cleanTag) && usersDB.get(phone).tag !== cleanTag) {
-        return res.status(400).json({ error: 'Этот тег уже занят' });
-    }
-    
-    if (!password || password.length < 6) {
-        return res.status(400).json({ error: 'Пароль должен быть не менее 6 символов' });
-    }
+    if (tags.has(cleanTag) && usersDB.get(phone).tag !== cleanTag) return res.status(400).json({ error: 'Тег занят' });
+    if (!password || password.length < 6) return res.status(400).json({ error: 'Пароль мин 6 символов' });
     
     const user = usersDB.get(phone);
-    if (user.tag) {
-        tags.delete(user.tag);
-    }
-    
+    if (user.tag) tags.delete(user.tag);
     tags.add(cleanTag);
     
     user.firstName = firstName;
@@ -269,29 +218,17 @@ app.post('/api/save-profile', (req, res) => {
     user.email = email;
     user.avatar = avatar;
     user.password = password;
-    
     saveData();
     
     res.json({
         success: true,
-        user: {
-            phone,
-            firstName,
-            lastName,
-            tag: cleanTag,
-            birthDate,
-            email,
-            avatar
-        }
+        user: { phone, firstName, lastName, tag: cleanTag, birthDate, email, avatar }
     });
 });
 
 app.post('/api/login', (req, res) => {
     const { login, password } = req.body;
-    
-    if (!login || !password) {
-        return res.status(400).json({ error: 'Введите логин и пароль' });
-    }
+    if (!login || !password) return res.status(400).json({ error: 'Введите данные' });
     
     const cleanLogin = login.trim().toLowerCase();
     let foundUser = null;
@@ -299,27 +236,17 @@ app.post('/api/login', (req, res) => {
     
     usersDB.forEach((user, phone) => {
         if (!user.password) return;
-        
-        const userTag = user.tag ? user.tag.toLowerCase() : '';
-        const userEmail = user.email ? user.email.toLowerCase() : '';
-        const userPhone = phone;
-        
-        if (cleanLogin === userTag || 
-            cleanLogin === userEmail || 
-            cleanLogin === userPhone ||
-            cleanLogin === userPhone.replace(/\D/g, '')) {
+        if (cleanLogin === (user.tag || '').toLowerCase() ||
+            cleanLogin === (user.email || '').toLowerCase() ||
+            cleanLogin === phone ||
+            cleanLogin === phone.replace(/\D/g, '')) {
             foundUser = user;
             foundPhone = phone;
         }
     });
     
-    if (!foundUser) {
-        return res.status(400).json({ error: 'Пользователь не найден' });
-    }
-    
-    if (foundUser.password !== password) {
-        return res.status(400).json({ error: 'Неверный пароль' });
-    }
+    if (!foundUser) return res.status(400).json({ error: 'Не найден' });
+    if (foundUser.password !== password) return res.status(400).json({ error: 'Неверный пароль' });
     
     res.json({
         success: true,
@@ -333,29 +260,6 @@ app.post('/api/login', (req, res) => {
             avatar: foundUser.avatar
         }
     });
-});
-
-app.post('/api/reset-password', (req, res) => {
-    const { phone, code, newPassword } = req.body;
-    
-    if (!usersDB.has(phone)) {
-        return res.status(400).json({ error: 'Пользователь не найден' });
-    }
-    
-    const user = usersDB.get(phone);
-    
-    if (user.code !== code) {
-        return res.status(400).json({ error: 'Неверный код' });
-    }
-    
-    if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ error: 'Пароль должен быть не менее 6 символов' });
-    }
-    
-    user.password = newPassword;
-    saveData();
-    
-    res.json({ success: true });
 });
 
 app.get('/api/get-users', (req, res) => {
@@ -377,17 +281,9 @@ app.get('/api/get-users', (req, res) => {
 
 app.post('/api/check-auth', (req, res) => {
     const { phone } = req.body;
-    
-    if (!usersDB.has(phone)) {
-        return res.json({ success: false });
-    }
-    
+    if (!usersDB.has(phone)) return res.json({ success: false });
     const user = usersDB.get(phone);
-    
-    if (!user.verified) {
-        return res.json({ success: false });
-    }
-    
+    if (!user.verified) return res.json({ success: false });
     if (user.firstName && user.tag) {
         return res.json({
             success: true,
@@ -402,8 +298,14 @@ app.post('/api/check-auth', (req, res) => {
             }
         });
     }
-    
     res.json({ success: false });
+});
+
+// Получение истории сообщений
+app.post('/api/get-messages', (req, res) => {
+    const { phone1, phone2 } = req.body;
+    const chatKey = getChatKey(phone1, phone2);
+    res.json({ messages: messagesDB[chatKey] || [] });
 });
 
 wss.on('connection', (ws) => {
@@ -415,25 +317,35 @@ wss.on('connection', (ws) => {
             
             if (message.type === 'join') {
                 const { phone, name, avatar } = message;
-                
                 if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
                     ws.send(JSON.stringify({ type: 'error', message: 'Не авторизован' }));
                     return;
                 }
-                
                 onlineUsers.set(ws, { phone, name, avatar });
-                
                 broadcastUserList();
+                return;
+            }
+            
+            if (message.type === 'typing') {
+                const userInfo = onlineUsers.get(ws);
+                if (!userInfo) return;
+                
+                onlineUsers.forEach((value, client) => {
+                    if (value.phone === message.toPhone && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            type: 'typing',
+                            fromPhone: userInfo.phone,
+                            userName: userInfo.name,
+                            isTyping: message.isTyping
+                        }));
+                    }
+                });
                 return;
             }
             
             if (message.type === 'private_message') {
                 const userInfo = onlineUsers.get(ws);
-                
-                if (!userInfo) {
-                    ws.send(JSON.stringify({ type: 'error', message: 'Сначала войдите' }));
-                    return;
-                }
+                if (!userInfo) return;
                 
                 const newMessage = {
                     id: Date.now(),
@@ -441,23 +353,109 @@ wss.on('connection', (ws) => {
                     userName: userInfo.name,
                     avatar: userInfo.avatar,
                     toPhone: message.toPhone,
-                    text: message.text,
-                    timestamp: new Date().toISOString()
+                    text: message.text || '',
+                    photo: message.photo || null,
+                    timestamp: new Date().toISOString(),
+                    reactions: {},
+                    edited: false
                 };
+                
+                const chatKey = getChatKey(userInfo.phone, message.toPhone);
+                if (!messagesDB[chatKey]) messagesDB[chatKey] = [];
+                messagesDB[chatKey].push(newMessage);
+                saveData();
                 
                 onlineUsers.forEach((value, client) => {
                     if (value.phone === message.toPhone && client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({
-                            type: 'private_message',
-                            message: newMessage
-                        }));
+                        client.send(JSON.stringify({ type: 'private_message', message: newMessage }));
                     }
                 });
                 
-                ws.send(JSON.stringify({
-                    type: 'private_message',
-                    message: newMessage
-                }));
+                ws.send(JSON.stringify({ type: 'private_message', message: newMessage }));
+                return;
+            }
+            
+            if (message.type === 'delete_message') {
+                const userInfo = onlineUsers.get(ws);
+                if (!userInfo) return;
+                
+                const chatKey = getChatKey(userInfo.phone, message.toPhone);
+                if (messagesDB[chatKey]) {
+                    messagesDB[chatKey] = messagesDB[chatKey].filter(m => m.id !== message.messageId);
+                    saveData();
+                }
+                
+                const deleteData = {
+                    type: 'message_deleted',
+                    messageId: message.messageId,
+                    toPhone: message.toPhone,
+                    fromPhone: userInfo.phone
+                };
+                
+                onlineUsers.forEach((value, client) => {
+                    if ((value.phone === message.toPhone || value.phone === userInfo.phone) && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify(deleteData));
+                    }
+                });
+                return;
+            }
+            
+            if (message.type === 'edit_message') {
+                const userInfo = onlineUsers.get(ws);
+                if (!userInfo) return;
+                
+                const chatKey = getChatKey(userInfo.phone, message.toPhone);
+                if (messagesDB[chatKey]) {
+                    const msg = messagesDB[chatKey].find(m => m.id === message.messageId);
+                    if (msg) {
+                        msg.text = message.newText;
+                        msg.edited = true;
+                        saveData();
+                    }
+                }
+                
+                const editData = {
+                    type: 'message_edited',
+                    messageId: message.messageId,
+                    newText: message.newText,
+                    toPhone: message.toPhone,
+                    fromPhone: userInfo.phone
+                };
+                
+                onlineUsers.forEach((value, client) => {
+                    if ((value.phone === message.toPhone || value.phone === userInfo.phone) && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify(editData));
+                    }
+                });
+                return;
+            }
+            
+            if (message.type === 'reaction') {
+                const userInfo = onlineUsers.get(ws);
+                if (!userInfo) return;
+                
+                const chatKey = getChatKey(userInfo.phone, message.toPhone);
+                if (messagesDB[chatKey]) {
+                    const msg = messagesDB[chatKey].find(m => m.id === message.messageId);
+                    if (msg) {
+                        msg.reactions[userInfo.phone] = message.emoji;
+                        saveData();
+                    }
+                }
+                
+                const reactionData = {
+                    type: 'message_reaction',
+                    messageId: message.messageId,
+                    emoji: message.emoji,
+                    fromPhone: userInfo.phone,
+                    toPhone: message.toPhone
+                };
+                
+                onlineUsers.forEach((value, client) => {
+                    if ((value.phone === message.toPhone || value.phone === userInfo.phone) && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify(reactionData));
+                    }
+                });
             }
         } catch (error) {
             console.error('Ошибка:', error);
@@ -484,10 +482,10 @@ function broadcastUserList() {
         userList.push({
             phone: value.phone,
             name: value.name,
-            avatar: value.avatar
+            avatar: value.avatar,
+            online: true
         });
     });
-    
     broadcast({ type: 'users', users: userList });
 }
 
