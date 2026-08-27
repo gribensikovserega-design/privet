@@ -639,6 +639,18 @@
             color: #999;
             font-size: 20px;
         }
+        
+        .qr-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .qr-container img {
+            width: 250px;
+            height: 250px;
+        }
     </style>
 </head>
 <body>
@@ -662,8 +674,23 @@
         <div class="error-message" id="loginError"></div>
         
         <button class="btn-primary" onclick="login()">Войти</button>
-        <button class="btn-secondary" onclick="showPhoneScreen()">← Назад</button>
-        <p style="color: #0088cc; cursor: pointer;" onclick="alert('QR-код будет доступен позже')">Войти по QR-коду</p>
+        <button class="btn-secondary" onclick="showWelcomeScreen()">← Назад</button>
+        <p style="color: #0088cc; cursor: pointer;" onclick="showQRCode()">Войти по QR-коду</p>
+        <p style="color: #999; cursor: pointer;" onclick="alert('Сброс пароля через SMS')">Забыли пароль?</p>
+    </div>
+    
+    <!-- Экран QR-кода -->
+    <div class="screen phone-screen hidden" id="qrScreen">
+        <h2>Вход по QR-коду</h2>
+        <p class="phone-hint">Откройте сайт на телефоне и отсканируйте код</p>
+        
+        <div class="qr-container">
+            <img id="qrImage" src="" alt="QR Code">
+        </div>
+        
+        <p id="qrStatus" style="color: #666;">Ожидание подтверждения...</p>
+        
+        <button class="btn-secondary" onclick="cancelQR()">Отмена</button>
     </div>
     
     <!-- Экран ввода номера -->
@@ -786,6 +813,8 @@
         let allUsers = [];
         let chats = [];
         let chatMessages = {};
+        let qrToken = null;
+        let qrCheckInterval = null;
         
         function checkAuth() {
             const savedPhone = localStorage.getItem('currentPhone');
@@ -836,6 +865,53 @@
             if (input.value.length === 1 && index < 5) {
                 document.querySelectorAll('.code-digit')[index + 1].focus();
             }
+        }
+        
+        function showQRCode() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('qrScreen').classList.remove('hidden');
+            
+            fetch('/api/generate-qr', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    qrToken = data.qrToken;
+                    document.getElementById('qrImage').src = data.qrImage;
+                    qrCheckInterval = setInterval(checkQRStatus, 2000);
+                }
+            })
+            .catch(err => console.error('Ошибка QR:', err));
+        }
+        
+        function checkQRStatus() {
+            if (!qrToken) return;
+            
+            fetch('/api/check-qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qrToken })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'confirmed') {
+                    clearInterval(qrCheckInterval);
+                    currentUser = data.user;
+                    currentPhone = data.user.phone;
+                    localStorage.setItem('currentPhone', currentPhone);
+                    enterMessenger();
+                } else if (data.status === 'expired') {
+                    clearInterval(qrCheckInterval);
+                    document.getElementById('qrStatus').textContent = 'QR-код устарел. Нажмите "Отмена" и попробуйте снова.';
+                }
+            })
+            .catch(err => console.error('Ошибка:', err));
+        }
+        
+        function cancelQR() {
+            clearInterval(qrCheckInterval);
+            showLoginScreen();
         }
         
         function login() {

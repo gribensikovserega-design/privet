@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const QRCode = require('qrcode');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,6 +19,7 @@ const SMS_API_ID = '80092059-6EB2-9425-83AF-59D4B555B8AE';
 let usersDB = new Map();
 let tags = new Set();
 let onlineUsers = new Map();
+let qrSessions = new Map();
 
 function loadData() {
     try {
@@ -54,14 +56,16 @@ function generateCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function generateQRToken() {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
 async function sendSMS(phone, message) {
     try {
         const cleanPhone = phone.replace(/\D/g, '');
         const smsUrl = `https://sms.ru/sms/send?api_id=${SMS_API_ID}&to=${cleanPhone}&msg=${encodeURIComponent(message)}&json=1`;
-        
         const response = await fetch(smsUrl);
         const data = await response.json();
-        
         console.log('SMS.ru ответ:', JSON.stringify(data));
         return data;
     } catch (error) {
@@ -70,7 +74,102 @@ async function sendSMS(phone, message) {
     }
 }
 
-// Отправка кода
+// Генерация QR-кода
+app.post('/api/generate-qr', async (req, res) => {
+    const qrToken = generateQRToken();
+    
+    qrSessions.set(qrToken, {
+        status: 'pending',
+        phone: null,
+        createdAt: Date.now()
+    });
+    
+    const qrData = JSON.stringify({ token: qrToken, type: 'qr_login' });
+    const qrImage = await QRCode.toDataURL(qrData);
+    
+    res.json({ success: true, qrToken, qrImage });
+});
+
+// Проверка статуса QR-кода
+app.post('/api/check-qr', (req, res) => {
+    const { qrToken } = req.body;
+    
+    if (!qrSessions.has(qrToken)) {
+        return res.json({ status: 'expired' });
+    }
+    
+    const session = qrSessions.get(qrToken);
+    
+    if (session.status === 'confirmed' && session.phone) {
+        const user = usersDB.get(session.phone);
+        if (user && user.verified) {
+            qrSessions.delete(qrToken);
+            return res.json({
+                status: 'confirmed',
+                user: {
+                    phone: session.phone,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    tag: user.tag,
+                    birthDate: user.birthDate,
+                    email: user.email,
+                    avatar: user.avatar
+                }
+            });
+        }
+    }
+    
+    if (Date.now() - session.createdAt > 120000) {
+        qrSessions.delete(qrToken);
+        return res.json({ status: 'expired' });
+    }
+    
+    res.json({ status: session.status });
+});
+
+// Подтверждение QR-входа
+app.post('/api/confirm-qr', (req, res) => {
+    const { qrToken, phone } = req.body;
+    
+    if (!qrSessions.has(qrToken)) {
+        return res.status(400).json({ error: 'QR-код устарел' });
+    }
+    
+    if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
+        return res.status(400).json({ error: 'Пользователь не авторизован' });
+    }
+    
+    qrSessions.get(qrToken).status = 'confirmed';
+    qrSessions.get(qrToken).phone = phone;
+    
+    res.json({ success: true });
+});
+
+// Сканирование QR-кода (получение данных)
+app.post('/api/scan-qr', (req, res) => {
+    const { qrToken, phone } = req.body;
+    
+    if (!qrSessions.has(qrToken)) {
+        return res.status(400).json({ error: 'QR-код устарел' });
+    }
+    
+    if (!usersDB.has(phone) || !usersDB.get(phone).verified) {
+        return res.status(400).json({ error: 'Пользователь не авторизован' });
+    }
+    
+    const user = usersDB.get(phone);
+    
+    res.json({
+        success: true,
+        confirmData: {
+            qrToken,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            avatar: user.avatar
+        }
+    });
+});
+
 app.post('/api/send-code', async (req, res) => {
     const { phone } = req.body;
     
@@ -104,7 +203,6 @@ app.post('/api/send-code', async (req, res) => {
     res.json({ success: true, code: code });
 });
 
-// Проверка кода
 app.post('/api/verify-code', (req, res) => {
     const { phone, code } = req.body;
     
@@ -140,7 +238,6 @@ app.post('/api/verify-code', (req, res) => {
     res.json({ success: true, needProfile: true });
 });
 
-// Сохранение профиля с паролем
 app.post('/api/save-profile', (req, res) => {
     const { phone, firstName, lastName, tag, birthDate, email, avatar, password } = req.body;
     
@@ -189,7 +286,6 @@ app.post('/api/save-profile', (req, res) => {
     });
 });
 
-// Вход по логину и паролю
 app.post('/api/login', (req, res) => {
     const { login, password } = req.body;
     
@@ -239,7 +335,6 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Сброс пароля по SMS
 app.post('/api/reset-password', (req, res) => {
     const { phone, code, newPassword } = req.body;
     
