@@ -35,7 +35,7 @@ let tags = new Set();
 let onlineUsers = new Map();
 let qrSessions = new Map();
 let messagesDB = {};
-let groupsDB = {}; // groupId -> { id, name, type: 'group'|'channel', creator, members: [], messages: [] }
+let groupsDB = {};
 
 function loadData() {
     try {
@@ -80,12 +80,13 @@ async function sendSMS(phone, message) {
     } catch (e) { return null; }
 }
 
-// ============ АВТОРИЗАЦИЯ ============
+// Загрузка фото
 app.post('/api/upload-photo', upload.single('photo'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Нет файла' });
     res.json({ success: true, url: '/uploads/' + req.file.filename });
 });
 
+// QR-коды
 app.post('/api/generate-qr', async (req, res) => {
     const qrToken = generateQRToken();
     qrSessions.set(qrToken, { status: 'pending', phone: null, createdAt: Date.now() });
@@ -117,6 +118,7 @@ app.post('/api/confirm-qr', (req, res) => {
     res.json({ success: true });
 });
 
+// Отправка кода
 app.post('/api/send-code', async (req, res) => {
     const { phone } = req.body;
     if (!phone || phone.length < 10) return res.status(400).json({ error: 'Некорректный номер' });
@@ -195,29 +197,26 @@ app.post('/api/get-messages', (req, res) => {
     res.json({ messages: messagesDB[getChatKey(phone1, phone2)] || [] });
 });
 
-// ============ ГРУППЫ И КАНАЛЫ ============
+// Группы и каналы
 app.post('/api/create-group', (req, res) => {
     const { phone, name, type } = req.body;
     if (!usersDB.has(phone) || !usersDB.get(phone).verified) return res.status(400).json({ error: 'Не авторизован' });
-    
     const groupId = generateId();
     groupsDB[groupId] = {
         id: groupId,
         name,
-        type: type || 'group', // 'group' или 'channel'
+        type: type || 'group',
         creator: phone,
         members: [phone],
         messages: [],
         createdAt: Date.now()
     };
     saveData();
-    
     res.json({ success: true, group: groupsDB[groupId] });
 });
 
 app.get('/api/get-groups', (req, res) => {
-    const groups = Object.values(groupsDB);
-    res.json({ groups });
+    res.json({ groups: Object.values(groupsDB) });
 });
 
 app.post('/api/join-group', (req, res) => {
@@ -236,7 +235,7 @@ app.post('/api/get-group-messages', (req, res) => {
     res.json({ messages: groupsDB[groupId].messages || [] });
 });
 
-// ============ WEBSOCKET ============
+// WebSocket
 wss.on('connection', (ws) => {
     console.log('Новое подключение');
     
@@ -268,15 +267,22 @@ wss.on('connection', (ws) => {
             
             if (message.type === 'private_message') {
                 const userInfo = onlineUsers.get(ws);
-                if (!userInfo) return;
+                if (!userInfo) {
+                    ws.send(JSON.stringify({ type: 'error', message: 'Не авторизован' }));
+                    return;
+                }
                 const newMessage = { id: Date.now(), phone: userInfo.phone, userName: userInfo.name, avatar: userInfo.avatar, toPhone: message.toPhone, text: message.text || '', photo: message.photo || null, timestamp: new Date().toISOString(), reactions: {}, edited: false };
                 const chatKey = getChatKey(userInfo.phone, message.toPhone);
                 if (!messagesDB[chatKey]) messagesDB[chatKey] = [];
                 messagesDB[chatKey].push(newMessage);
                 saveData();
+                
                 onlineUsers.forEach((value, client) => {
-                    if (value.phone === message.toPhone && client.readyState === WebSocket.OPEN) client.send(JSON.stringify({ type: 'private_message', message: newMessage }));
+                    if (value.phone === message.toPhone && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({ type: 'private_message', message: newMessage }));
+                    }
                 });
+                
                 ws.send(JSON.stringify({ type: 'private_message', message: newMessage }));
                 return;
             }
@@ -291,7 +297,6 @@ wss.on('connection', (ws) => {
                 group.messages.push(newMessage);
                 saveData();
                 
-                // Отправляем всем участникам
                 onlineUsers.forEach((value, client) => {
                     if (group.members.includes(value.phone) && client.readyState === WebSocket.OPEN) {
                         client.send(JSON.stringify({ type: 'group_message', message: newMessage }));

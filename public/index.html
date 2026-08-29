@@ -12,6 +12,7 @@
         .welcome-logo { font-size: 100px; animation: bounce 2s infinite; }
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
         .welcome-screen h1 { color: #0088cc; font-size: 40px; }
+        .welcome-screen p { color: #666; font-size: 20px; }
         .btn-primary { padding: 15px 50px; background: #0088cc; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
         .btn-secondary { padding: 15px 50px; background: transparent; color: #0088cc; border: 2px solid #0088cc; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
@@ -31,6 +32,7 @@
         .sidebar-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
         .sidebar-header .user-name { flex: 1; font-weight: bold; font-size: 18px; }
         .logout-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .create-btn { padding: 8px 15px; background: #4cd964; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; }
         .search-container { padding: 10px; background: #f8f8f8; position: relative; }
         .search-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 25px; font-size: 16px; outline: none; background: white; }
         .search-results { position: absolute; top: 60px; left: 10px; right: 10px; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 100; display: none; }
@@ -41,6 +43,8 @@
         .chat-item:hover { background: #e6f2ff; }
         .chat-item.active { background: #d4e8ff; border-left: 4px solid #0088cc; }
         .chat-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+        .group-icon { width: 50px; height: 50px; border-radius: 50%; background: #4cd964; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
+        .channel-icon { width: 50px; height: 50px; border-radius: 50%; background: #ff9500; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
         .chat-area { flex: 1; display: flex; flex-direction: column; background: white; }
         .chat-area-header { padding: 15px; background: #0088cc; color: white; display: flex; align-items: center; gap: 10px; }
         .chat-area-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
@@ -58,13 +62,10 @@
         .send-btn { padding: 12px 25px; background: #0088cc; color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: bold; }
         .photo-btn { padding: 12px 15px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 50%; cursor: pointer; font-size: 20px; }
         .no-chat-selected { flex: 1; display: flex; justify-content: center; align-items: center; color: #999; font-size: 20px; }
-        .create-btn { padding: 8px 15px; background: #4cd964; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .group-icon { width: 50px; height: 50px; border-radius: 50%; background: #4cd964; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
-        .channel-icon { width: 50px; height: 50px; border-radius: 50%; background: #ff9500; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
     </style>
 </head>
 <body>
-    <!-- Экраны -->
+    <!-- Экран приветствия -->
     <div class="screen welcome-screen" id="welcomeScreen">
         <div class="welcome-logo">👋</div>
         <h1>Добро пожаловать в Привет!</h1>
@@ -73,8 +74,10 @@
         <button class="btn-secondary" onclick="showLoginScreen()">У меня есть аккаунт</button>
     </div>
     
+    <!-- Экран входа -->
     <div class="screen hidden" id="loginScreen">
         <h2>Вход в аккаунт</h2>
+        <p style="color:#666;">Введите номер, тег или почту</p>
         <input type="text" class="profile-input" id="loginInput" placeholder="Номер, @тег или почта">
         <input type="password" class="profile-input" id="loginPassword" placeholder="Пароль">
         <div class="error-message" id="loginError"></div>
@@ -83,6 +86,7 @@
         <p style="color:#0088cc;cursor:pointer;" onclick="showQRCode()">Войти по QR-коду</p>
     </div>
     
+    <!-- Экран QR-кода -->
     <div class="screen hidden" id="qrScreen">
         <h2>Вход по QR-коду</h2>
         <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 0 20px rgba(0,0,0,0.1);">
@@ -92,8 +96,10 @@
         <button class="btn-secondary" onclick="cancelQR()">Отмена</button>
     </div>
     
+    <!-- Экран ввода номера -->
     <div class="screen hidden" id="phoneScreen">
         <h2>Введите номер телефона</h2>
+        <p style="color:#666;">Проверьте код страны и введите номер</p>
         <div style="display:flex;gap:10px;">
             <input type="text" class="profile-input" id="countryCode" value="+7" maxlength="3" style="width:80px;text-align:center;">
             <input type="tel" class="profile-input" id="phoneInput" placeholder="999 123-45-67" maxlength="12" style="width:260px;">
@@ -103,8 +109,10 @@
         <button class="btn-secondary" onclick="showWelcomeScreen()">← Назад</button>
     </div>
     
+    <!-- Экран ввода кода -->
     <div class="screen hidden" id="codeScreen">
         <h2>Введите код</h2>
+        <p style="color:#666;">Код отправлен на номер <span id="displayPhone"></span></p>
         <div class="test-code-display" id="testCodeDisplay"></div>
         <div class="code-inputs">
             <input type="text" class="code-digit" maxlength="1" oninput="moveToNext(this,0)">
@@ -118,6 +126,7 @@
         <button class="btn-primary" onclick="verifyCode()">Подтвердить</button>
     </div>
     
+    <!-- Экран профиля -->
     <div class="screen hidden" id="profileScreen">
         <h2>Создание профиля</h2>
         <div class="avatar-circle" onclick="document.getElementById('avatarInput').click()">
@@ -257,7 +266,14 @@
             fetch('/api/send-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: fullPhone }) })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) { currentPhone = fullPhone; showCodeScreen(); document.getElementById('testCodeDisplay').textContent = 'Код: ' + data.code; document.getElementById('testCodeDisplay').style.display = 'block'; }
+                    if (data.success) {
+                        currentPhone = fullPhone;
+                        showCodeScreen();
+                        document.getElementById('testCodeDisplay').textContent = 'Код: ' + data.code;
+                        document.getElementById('testCodeDisplay').style.display = 'block';
+                    } else {
+                        showError('phoneError', data.error || 'Ошибка');
+                    }
                 });
         }
         
@@ -326,8 +342,14 @@
         function logout() { localStorage.removeItem('currentPhone'); location.reload(); }
         
         function connectWebSocket() {
-            ws = new WebSocket(`ws://${window.location.host}`);
-            ws.onopen = () => { ws.send(JSON.stringify({ type: 'join', phone: currentUser.phone, name: currentUser.firstName + ' ' + currentUser.lastName, avatar: currentUser.avatar })); };
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            ws = new WebSocket(protocol + window.location.host);
+            
+            ws.onopen = () => {
+                console.log('WebSocket подключен');
+                ws.send(JSON.stringify({ type: 'join', phone: currentUser.phone, name: currentUser.firstName + ' ' + currentUser.lastName, avatar: currentUser.avatar }));
+            };
+            
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'private_message') handleIncomingMessage(data.message);
@@ -338,6 +360,9 @@
                 if (data.type === 'message_edited') handleMessageEdited(data);
                 if (data.type === 'message_reaction') handleMessageReaction(data);
             };
+            
+            ws.onerror = (error) => { console.error('WebSocket ошибка:', error); };
+            ws.onclose = () => { console.log('WebSocket отключен'); };
         }
         
         function loadAllUsers() {
@@ -460,7 +485,6 @@
             const div = document.getElementById('chatsList');
             div.innerHTML = '';
             
-            // Группы
             groups.forEach(group => {
                 const item = document.createElement('div');
                 item.className = 'chat-item' + (activeGroup && activeGroup.id === group.id ? ' active' : '');
@@ -469,7 +493,6 @@
                 div.appendChild(item);
             });
             
-            // Личные чаты
             chats.forEach(chat => {
                 const item = document.createElement('div');
                 item.className = 'chat-item' + (activeChat && activeChat.phone === chat.phone ? ' active' : '');
@@ -555,7 +578,12 @@
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            if (!text || !ws) return;
+            if (!text) return;
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Нет соединения. Перезагрузите страницу.');
+                return;
+            }
             
             if (activeGroup) {
                 ws.send(JSON.stringify({ type: 'group_message', groupId: activeGroup.id, text }));
@@ -583,7 +611,7 @@
             fetch('/api/upload-photo', { method: 'POST', body: formData })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success && ws) {
+                    if (data.success && ws && ws.readyState === WebSocket.OPEN) {
                         if (activeGroup) {
                             ws.send(JSON.stringify({ type: 'group_message', groupId: activeGroup.id, text: '', photo: data.url }));
                         } else if (activeChat) {
@@ -593,7 +621,7 @@
                 });
         }
         
-        function handleTyping() { if (!ws || !activeChat) return; ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: true })); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => { ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: false })); }, 2000); }
+        function handleTyping() { if (!ws || !activeChat || ws.readyState !== WebSocket.OPEN) return; ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: true })); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => { ws.send(JSON.stringify({ type: 'typing', toPhone: activeChat.phone, isTyping: false })); }, 2000); }
         function handleKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
         function deleteMessage(messageId) { if (!activeChat) return; ws.send(JSON.stringify({ type: 'delete_message', toPhone: activeChat.phone, messageId })); }
         function editMessage(messageId) { const newText = prompt('Новый текст:'); if (newText && activeChat) ws.send(JSON.stringify({ type: 'edit_message', toPhone: activeChat.phone, messageId, newText })); }
